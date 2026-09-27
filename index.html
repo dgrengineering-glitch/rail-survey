@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Rail Survey</title>
+  <meta name="description" content="Rail Survey – mark and record track-side locations with GPS, notes, measurements, mileage and photos. Works offline.">
+  <meta name="theme-color" content="#111111">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Rail Survey">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css?v=0.1.0">
+</head>
+<body>
+  <header class="topbar">
+    <button id="backBtn" class="top-back" type="button" aria-label="Back" hidden>‹ Back</button>
+    <div class="brand"><img src="icons/icon-192.png" alt="" class="logo" width="30" height="30"><h1 id="viewTitle">Rail Survey</h1><span class="beta">BETA</span></div>
+    <div class="top-right">
+      <span id="netStatus" class="net on" role="status">Online</span>
+      <button id="syncBadge" class="sync-badge" type="button" hidden>0</button>
+    </div>
+  </header>
+
+  <div id="updateBanner" class="update-banner" hidden><span>A new version is ready.</span><button id="reloadBtn" class="btn small light" type="button">Reload</button></div>
+
+  <main id="main">
+    <!-- HOME -->
+    <section id="view-home" class="view active" aria-label="Home">
+      <div id="installHint" class="card hint-card" hidden>
+        <div><b>Install:</b> Safari Share <span aria-hidden="true">⬆︎</span> › <b>Add to Home Screen</b> – works offline and keeps your data safe.</div>
+        <button id="dismissInstall" class="icon-btn" type="button" aria-label="Dismiss">×</button>
+      </div>
+      <div class="stats">
+        <div class="stat"><b id="statCount">0</b><span>locations</span></div>
+        <div class="stat"><b id="statToday">0</b><span>today</span></div>
+        <div class="stat" id="statSyncWrap"><b id="statUnsynced">–</b><span id="statSyncLabel">sync off</span></div>
+      </div>
+      <button id="lastCard" class="card last-card" type="button" hidden></button>
+      <div class="grow"></div>
+      <button id="markBtn" class="mark-btn" type="button">
+        <span class="pin" aria-hidden="true">📍</span>
+        <span class="mark-text">Mark Location</span>
+        <small>Starts GPS straight away</small>
+      </button>
+      <div class="home-actions">
+        <button class="btn outline big" type="button" data-go="summary">☰ Summary</button>
+        <button class="btn outline big" type="button" data-go="export">⇪ Export</button>
+      </div>
+    </section>
+
+    <!-- MARK / EDIT FORM -->
+    <section id="view-form" class="view" aria-label="Location form">
+      <form id="recForm" autocomplete="off" novalidate>
+        <div id="gpsCard" class="card gps-card">
+          <div class="gps-head"><span id="gpsStatus" class="gps-status">GPS</span><span id="gpsCount" class="muted small"></span></div>
+          <div class="gps-coords">
+            <div><span class="lbl">Lat</span><b id="gpsLat">–</b></div>
+            <div><span class="lbl">Long</span><b id="gpsLon">–</b></div>
+            <div><span class="lbl">Accuracy</span><b id="gpsAcc" class="acc">–</b></div>
+          </div>
+          <div class="gps-bar" aria-hidden="true"><i id="gpsBar"></i></div>
+          <p id="gpsMsg" class="gps-msg" hidden></p>
+          <div class="btn-row">
+            <button id="gpsAccept" class="btn primary" type="button">✓ Accept</button>
+            <button id="gpsRefine" class="btn outline" type="button">↻ Refine</button>
+            <button id="gpsManualBtn" class="btn outline" type="button">✎ Manual</button>
+          </div>
+          <div id="manualPanel" class="manual-panel" hidden>
+            <label class="field"><span>Paste a Google Maps link or coordinates</span>
+              <textarea id="manPaste" rows="2" placeholder="https://www.google.com/maps/… or lat, long e.g. 5x.xxxxx, -x.xxxxx" autocapitalize="off" spellcheck="false"></textarea></label>
+            <p id="manPasteResult" class="small muted" hidden></p>
+            <div class="grid2">
+              <label class="field"><span>Latitude</span><input id="manLat" inputmode="decimal" placeholder="e.g. 5x.xxxxxx"></label>
+              <label class="field"><span>Longitude</span><input id="manLon" inputmode="decimal" placeholder="e.g. -x.xxxxxx"></label>
+            </div>
+            <div class="btn-row">
+              <button id="manPasteBtn" class="btn outline" type="button">📋 Paste</button>
+              <button id="manUse" class="btn primary" type="button">Use this location</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="exifOffer" class="card note-card" hidden></div>
+
+        <label class="field big-field"><span>Location name / tag</span>
+          <input id="fTag" enterkeyhint="next" placeholder="e.g. ATS 123" autocapitalize="characters"></label>
+        <div id="tagHint" class="chips" hidden></div>
+
+        <div class="field big-field">
+          <label for="fNotes"><span>Notes</span></label>
+          <textarea id="fNotes" rows="5" placeholder="Speak or type your notes…"></textarea>
+          <div class="btn-row">
+            <button id="dictBtn" class="btn dictate" type="button"><span aria-hidden="true">🎙</span> Dictate</button>
+            <button id="dictCancel" class="btn outline" type="button" hidden>Cancel</button>
+          </div>
+          <p id="dictStatus" class="small dict-status" role="status" hidden></p>
+          <p id="dictHint" class="small muted" hidden>Tip: live dictation isn’t available here – tap in the box and use the 🎤 key on the iPhone keyboard.</p>
+        </div>
+
+        <label class="field big-field"><span>Distance from running edge (mm)</span>
+          <input id="fRunEdge" inputmode="decimal" placeholder="mm"></label>
+
+        <fieldset class="card chain-card">
+          <legend>Chainage</legend>
+          <div class="grid2">
+            <label class="field"><span>ELR</span><input id="fElr" placeholder="e.g. ABC1" autocapitalize="characters" maxlength="8"></label>
+            <label class="field"><span>Track ID</span><input id="fTrack" placeholder="e.g. 1100 / Up Fast"></label>
+          </div>
+          <div class="grid3">
+            <label class="field"><span>Miles</span><input id="fMiles" inputmode="numeric" placeholder="m"></label>
+            <label class="field"><span>Chains</span><input id="fChains" inputmode="decimal" placeholder="ch"></label>
+            <label class="field"><span>Yards</span><input id="fYards" inputmode="decimal" placeholder="auto"></label>
+          </div>
+          <div class="mileage-row"><span class="muted small">Mileage</span> <b id="mileageDisplay">–</b></div>
+          <p class="small muted">Yards are worked out from chains (1 ch = 22 yd). Editing yards updates chains.</p>
+          <button id="chainBtn" class="btn outline block" type="button">🌐 Estimate from mileposts</button>
+          <div id="chainResult" class="chain-result" hidden></div>
+        </fieldset>
+
+        <fieldset class="card">
+          <legend>Other measurements</legend>
+          <div id="measList"></div>
+          <datalist id="measNames"></datalist>
+          <button id="addMeas" class="btn outline block" type="button">＋ Add measurement</button>
+        </fieldset>
+
+        <fieldset class="card">
+          <legend>Photos</legend>
+          <div id="photoList" class="photo-list"></div>
+          <div class="btn-row">
+            <label class="btn outline file-btn">📷 Take photo<input id="photoCam" type="file" accept="image/*" capture="environment" multiple></label>
+            <label class="btn outline file-btn">🖼 From library<input id="photoLib" type="file" accept="image/*" multiple></label>
+          </div>
+          <p id="photoBusy" class="small muted" hidden><span class="spinner"></span> Compressing photo…</p>
+        </fieldset>
+
+        <div class="grid2">
+          <label class="field"><span>Surveyor</span><input id="fSurveyor" placeholder="Your name" autocapitalize="words"></label>
+          <div class="field"><span>Timestamp</span><div id="fTime" class="readonly"></div></div>
+        </div>
+        <div class="form-spacer"></div>
+      </form>
+      <div class="form-footer">
+        <button id="formCancel" class="btn outline big" type="button">Cancel</button>
+        <button id="formSave" class="btn primary big" type="button">Save location</button>
+      </div>
+    </section>
+
+    <!-- SUMMARY -->
+    <section id="view-summary" class="view" aria-label="Summary">
+      <div class="search-row">
+        <input id="search" type="search" placeholder="Search tag, notes, ELR, mileage…" autocapitalize="off" enterkeyhint="search">
+      </div>
+      <div class="list-head"><span id="listCount" class="muted small"></span><button class="btn small outline" type="button" data-go="export">⇪ Export</button></div>
+      <div id="list" class="rec-list"></div>
+    </section>
+
+    <!-- DETAIL -->
+    <section id="view-detail" class="view" aria-label="Location details">
+      <div id="detail"></div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="view-settings" class="view" aria-label="Settings">
+      <div class="card">
+        <h2>Surveyor</h2>
+        <label class="field"><span>Your name (added to new records)</span><input id="sSurveyor" placeholder="e.g. David Robinson" autocapitalize="words"></label>
+      </div>
+
+      <div class="card" id="exportCard">
+        <h2>Export</h2>
+        <p class="small muted">Files are made on this phone, then shared (Mail, Files, WhatsApp, Google Drive…) or downloaded.</p>
+        <div class="grid2">
+          <button class="btn outline big" type="button" data-export="kmz">KMZ<small>Google Earth + photos</small></button>
+          <button class="btn outline big" type="button" data-export="kml">KML<small>Google Earth / Maps</small></button>
+          <button class="btn outline big" type="button" data-export="xlsx">Excel<small>.xlsx</small></button>
+          <button class="btn outline big" type="button" data-export="csv">CSV<small>spreadsheet</small></button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Backup &amp; restore</h2>
+        <p class="small muted">A full backup (JSON) includes every record and photo. Keep one somewhere safe, e.g. iCloud Drive or email it to yourself.</p>
+        <div class="grid2">
+          <button id="backupBtn" class="btn outline big" type="button">⤓ Full backup</button>
+          <label class="btn outline big file-btn">⤒ Restore<input id="restoreInput" type="file" accept="application/json,.json"></label>
+        </div>
+      </div>
+
+      <div class="card" id="syncCard">
+        <h2>Google Sheet sync <span class="optional">optional</span></h2>
+        <p class="small muted">Off by default – your data stays on this phone. When switched on, records are copied to your own Google Sheet (photos to your Google Drive). See Help › Google Sheet sync for setup.</p>
+        <label class="toggle"><input id="sSyncEnabled" type="checkbox"><span>Sync to my Google Sheet</span></label>
+        <label class="field"><span>Apps Script web app URL</span><input id="sScriptUrl" type="url" placeholder="https://script.google.com/macros/s/…/exec" autocapitalize="off" spellcheck="false"></label>
+        <label class="field"><span>Secret token</span><input id="sToken" type="password" placeholder="the token you set in the Sheet" autocapitalize="off" spellcheck="false" autocomplete="off"></label>
+        <label class="toggle small"><input id="sShowToken" type="checkbox"><span>Show token</span></label>
+        <div class="btn-row">
+          <button id="testConn" class="btn outline" type="button">Test connection</button>
+          <button id="syncNow" class="btn primary" type="button">Sync now</button>
+        </div>
+        <p id="syncStatus" class="small sync-status" role="status"></p>
+      </div>
+
+      <div class="card danger-card">
+        <h2>Clear all data</h2>
+        <p class="small muted">Deletes every location and photo from this phone. Your name and sync settings are kept. Make a backup first.</p>
+        <button id="clearAll" class="btn danger big block" type="button">Clear all data…</button>
+      </div>
+
+      <div class="card about">
+        <h2>About</h2>
+        <p>Rail Survey <b id="appVersion">v0.1.0 beta</b> · offline cache <span id="swVersion">–</span></p>
+        <p class="small muted" id="storageInfo"></p>
+        <button id="checkUpdate" class="btn outline small" type="button">Check for update</button>
+      </div>
+    </section>
+
+    <!-- HELP -->
+    <section id="view-help" class="view help" aria-label="Help">
+      <div class="card">
+        <h2>Quick start</h2>
+        <ol>
+          <li><b>Install:</b> in Safari tap Share ⬆︎ › <b>Add to Home Screen</b>. Open Rail Survey from the Home Screen icon. Once opened, it works with no signal.</li>
+          <li>At each location tap <b>Mark Location</b>. GPS starts at once and keeps the most accurate fix for about 10 seconds. Watch the <b>±metres</b> figure: under 5 m is good.</li>
+          <li>Tap <b>Accept</b> when happy, or <b>Refine</b> to keep improving it. No signal or permission? Tap <b>Manual</b> and type the lat/long or paste a Google Maps link.</li>
+          <li>The tag is suggested from your last one (ATS 123 → ATS 124). Tap <b>Dictate</b> for notes, or use the 🎤 key on the keyboard.</li>
+          <li>Fill in the running-edge distance, ELR, track ID, miles and chains (yards are worked out for you) and any other measurements. Add photos if you like.</li>
+          <li>Tap <b>Save location</b>. It’s stored on the phone straight away, with or without signal.</li>
+          <li>Use <b>Summary</b> to search, view, edit or delete, and <b>Export</b> for KMZ/KML (Google Earth), Excel or CSV.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h2>GPS tips</h2>
+        <ul>
+          <li>Hold the phone up with a clear view of the sky. Cuttings, tunnels, bridges and station canopies make it worse.</li>
+          <li>Precise Location must be on: iPhone Settings › Privacy &amp; Security › Location Services › Safari Websites › <b>While Using the App</b> + <b>Precise Location</b>.</li>
+          <li>Phone GPS is typically ±3–10 m. Always check critical positions against Network Rail records.</li>
+          <li>If a photo carries GPS data and there’s no fix, the app will offer to use the photo’s location.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2>Estimate from mileposts</h2>
+        <p>Optional and online only. It asks OpenStreetMap (Overpass API) for mileposts and railway lines near your fix and suggests an ELR, track name and an interpolated mileage. <b>It is approximate – always verify against NR records.</b> Nothing is filled in unless you tap to use it. OpenStreetMap has few UK mileposts mapped, so often you’ll only get an ELR suggestion. Your approximate position is sent to the Overpass service when you tap the button.</p>
+      </div>
+      <div class="card">
+        <h2>Exports &amp; backup</h2>
+        <ul>
+          <li><b>KMZ</b> – for Google Earth, with photos inside. <b>KML</b> – smaller, no photos (opens in Google Earth and Google My Maps).</li>
+          <li><b>Excel</b> – a Summary sheet (one row per location) plus a Measurements sheet. <b>CSV</b> – the same Summary table.</li>
+          <li><b>Full backup</b> – everything including photos, as one JSON file. <b>Restore</b> merges a backup back in (newer copies win).</li>
+          <li>On iPhone the Share sheet opens – choose Mail, Save to Files, Google Drive etc. On a computer the file downloads.</li>
+        </ul>
+      </div>
+      <div class="card" id="helpSync">
+        <h2>Google Sheet sync – setup (about 10 minutes, once)</h2>
+        <ol>
+          <li>On a computer, go to <b>sheets.new</b> while signed in to your Google account and name the sheet, e.g. “Rail Survey”.</li>
+          <li>In the sheet choose <b>Extensions › Apps Script</b>. Delete the sample code and paste in the whole of <b>Code.gs</b> from <a href="https://github.com/dgrengineering-glitch/rail-survey/blob/main/apps-script/Code.gs" target="_blank" rel="noopener">github.com/dgrengineering-glitch/rail-survey › apps-script/Code.gs</a>. Click 💾 Save.</li>
+          <li>Choose your own secret token (a long random phrase, 16+ characters). In the Apps Script editor pick the function <b>setup</b> in the toolbar and click <b>Run</b>. Approve the permissions (Sheets and Drive, your account only). Reload the Sheet tab and a <b>Rail Survey</b> menu appears: use <b>Rail Survey › Set sync token…</b> and enter your token. (Alternatively type it into the <code>SYNC_TOKEN</code> line near the top of Code.gs.)</li>
+          <li>In Apps Script click <b>Deploy › New deployment</b>, type ⚙︎ <b>Web app</b>. Set <b>Execute as: Me</b> and <b>Who has access: Anyone</b>. Click Deploy and copy the <b>Web app URL</b> (ends in <code>/exec</code>).</li>
+          <li>In Rail Survey › Settings › Google Sheet sync: tick <b>Sync to my Google Sheet</b>, paste the URL and your token, tap <b>Test connection</b>. You should see “Connected to …”.</li>
+          <li>Tap <b>Sync now</b>. Records then sync automatically whenever you have signal (on opening the app, when signal returns, after saving). Unsynced records show an orange badge.</li>
+        </ol>
+        <p class="small">“Anyone” means anyone with the long secret URL can reach the script, but it refuses every request without your token. Photos go into a Drive folder called “Rail Survey Photos” and are shared “anyone with the link can view” so the link in the sheet works. If you change Code.gs later, use <b>Deploy › Manage deployments › Edit › Version: New version</b> so the URL stays the same.</p>
+      </div>
+      <div class="card">
+        <h2>Privacy &amp; storage</h2>
+        <p>All survey data is stored only on this device (IndexedDB) unless you switch on Google Sheet sync. Nothing is sent anywhere else, apart from your approximate position when you tap <b>Estimate from mileposts</b>. Clearing Safari website data or deleting the Home Screen app removes the data – export or back up regularly.</p>
+      </div>
+      <div class="card">
+        <h2>Troubleshooting</h2>
+        <ul>
+          <li><b>Dictate does nothing:</b> iPhone live dictation in web apps needs Siri &amp; Dictation switched on and often a data connection. Use the 🎤 key on the keyboard instead – it works everywhere.</li>
+          <li><b>No GPS prompt:</b> close the app fully (swipe up) and reopen, then check the Location settings above.</li>
+          <li><b>New version:</b> the app updates itself when online; tap Reload when the banner appears.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabbar" aria-label="Main">
+    <button class="tab active" type="button" data-view="home"><span aria-hidden="true">⌂</span>Home</button>
+    <button class="tab" type="button" data-view="summary"><span aria-hidden="true">☰</span>Summary<i id="tabBadge" class="tab-badge" hidden></i></button>
+    <button class="tab" type="button" data-view="settings"><span aria-hidden="true">⚙︎</span>Settings</button>
+    <button class="tab" type="button" data-view="help"><span aria-hidden="true">?</span>Help</button>
+  </nav>
+
+  <div id="sheetBackdrop" class="sheet-backdrop" hidden></div>
+  <div id="sheet" class="sheet" role="dialog" aria-modal="true" hidden></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="vendor/jszip.min.js?v=0.1.0"></script>
+  <script src="js/util.js?v=0.1.0"></script>
+  <script src="js/db.js?v=0.1.0"></script>
+  <script src="js/geo.js?v=0.1.0"></script>
+  <script src="js/voice.js?v=0.1.0"></script>
+  <script src="js/chainage.js?v=0.1.0"></script>
+  <script src="js/export.js?v=0.1.0"></script>
+  <script src="js/sync.js?v=0.1.0"></script>
+  <script src="js/app.js?v=0.1.0"></script>
+</body>
+</html>

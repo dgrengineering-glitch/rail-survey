@@ -1,0 +1,5 @@
+# Screenshots from local test runs show mock data – keep them out of the public repo.
+screenshots/
+node_modules/
+*.log
+.DS_Store
